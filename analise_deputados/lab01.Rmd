@@ -1,0 +1,34 @@
+---
+title: "Analise"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+```
+
+
+```{r}
+dados <- read_csv(("data/dadosCEAP.csv"))
+```
+
+```{r}
+Parlamentar_gastos <- dados %>% group_by(nomeParlamentar) %>%
+  summarise(gastos = sum(valorLíquido)) %>% 
+  arrange(-gastos) %>% 
+  slice(1:7)
+  
+Parlamentar_economia <- dados %>% group_by(nomeParlamentar) %>%
+  summarise(gastos = sum(valorLíquido)) %>% 
+  filter(gastos >= 0) %>% 
+  arrange(gastos) %>% 
+  slice(1:7)
+  
+```
+
+

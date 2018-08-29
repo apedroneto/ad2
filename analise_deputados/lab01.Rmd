@@ -11,11 +11,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readr)
 library(magrittr)
 library(tidyverse)
+options(scipen = 999)
 ```
 
 
 ```{r}
-dados <- read_csv(("dados/dadosCEAP.csv"))
+dados <- read_csv(("data/dadosCEAP.csv"))
+dados2 <- read_csv("data/limiteMensalCEAP.csv")
+dados %>% full_join(dados2,by = c("sgUF" = "UF")) -> dados
 ```
 
 ```{r}
@@ -31,6 +34,7 @@ Parlamentar_economia <- dados %>% group_by(nomeParlamentar) %>%
   slice(1:7)
 
 ggplot(Parlamentar_economia, aes(x=nomeParlamentar, y=gastos)) + 
+  labs(x = "Nome do Deputado", y = "Gastos")+
   geom_point(size=3) + 
   geom_segment(aes(x=nomeParlamentar, 
                    xend=nomeParlamentar, 
@@ -43,6 +47,7 @@ ggplot(Parlamentar_economia, aes(x=nomeParlamentar, y=gastos)) +
 
 
 ggplot(Parlamentar_gastos, aes(x=nomeParlamentar, y=gastos)) + 
+  labs(x = "Nome do Deputado", y = "Gastos")+
   geom_point(size=3) + 
   geom_segment(aes(x=nomeParlamentar, 
                    xend=nomeParlamentar, 
@@ -57,9 +62,10 @@ Estados_mais_gastos <- dados %>% group_by(sgUF) %>%
   summarise(gastos = sum(valorLíquido)) %>% 
   arrange(-gastos) %>% 
   filter(gastos > 0) %>% 
-  slice(1:7)
+  slice(1:7) %>% 
 
 ggplot(Estados_mais_gastos, aes(x=sgUF, y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
   geom_point(size=3) + 
   geom_segment(aes(x=sgUF, 
                    xend=sgUF, 
@@ -70,14 +76,15 @@ ggplot(Estados_mais_gastos, aes(x=sgUF, y=gastos)) +
        caption="source: dados") + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
-Estados_menos_gastos <- dados %>%   na.omit(sgUF) %>% 
+Estados_menos_gastos <- dados %>% 
   group_by(sgUF) %>% 
+  filter(tipoDocumento == 2) %>% 
   summarise(gastos = sum(valorLíquido)) %>% 
-  filter(gastos >= 0) %>% 
   arrange(gastos) %>% 
-  slice(1:7)
+  slice(1:5)
 
-ggplot(Estados_menos_gastos, aes(x=sgUF, y=gastos)) + 
+ggplot(Estados_menos_gastos, aes(x=reorder(sgUF, gastos), y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
   geom_point(size=3) + 
   geom_segment(aes(x=sgUF, 
                    xend=sgUF, 
@@ -86,11 +93,106 @@ ggplot(Estados_menos_gastos, aes(x=sgUF, y=gastos)) +
   labs(title="Gastos dos Estados", 
        subtitle="Gastos Vs Estados", 
        caption="source: dados") + 
+  coord_flip()+
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
   
 ```
 
+```{r}
+partidos_mais_gastos <- dados %>%
+  filter(sgUF == 'PB') %>% 
+  group_by(sgPartido) %>% 
+  summarise(gastos = sum(valorLíquido)) %>% 
+  arrange(-gastos) %>% 
+  slice(1:5)
+
+partidos_menos_gastos <- dados %>%
+  filter(sgUF == 'PB') %>% 
+  group_by(sgPartido) %>% 
+  summarise(gastos = sum(valorLíquido)) %>% 
+  arrange(gastos) %>% 
+  slice(1:5)
+  
+
+ggplot(partidos_mais_gastos, aes(x=reorder(sgPartido, gastos), y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=sgPartido, 
+                   xend=sgPartido, 
+                   y=0, 
+                   yend=gastos)) + 
+  labs(title="Gastos dos Estados", 
+       subtitle="Gastos Vs Estados", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(partidos_menos_gastos, aes(x=reorder(sgPartido, gastos), y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=sgPartido, 
+                   xend=sgPartido, 
+                   y=0, 
+                   yend=gastos)) + 
+  labs(title="Partidos que gastaram pouco", 
+       subtitle="Partidos Vs Gastos", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+  
 
 
+```
 
+## Questão 4
+```{r}
+deputados_por_estados <- dados %>%
+  group_by(nomeParlamentar, sgUF, limite_mensal) %>%
+  summarise(gastos = sum(valorLíquido)) %>% 
+  filter(gastos > limite_mensal) %>% 
+  ungroup() %>% 
+  arrange(-gastos) %>%
+  slice(1:7)
+
+
+ggplot(deputados_por_estados, aes(x=reorder(nomeParlamentar, gastos), y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=nomeParlamentar, 
+                   xend=nomeParlamentar, 
+                   y=0, 
+                   yend=gastos)) + 
+  labs(title="Partidos que gastaram pouco", 
+       subtitle="Partidos Vs Gastos", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+  
+
+
+```
+## QUESTAO 5
+```{r}
+
+gasto_passagem_aerea <- dados %>% 
+  filter(tipoDespesa == "Emissão Bilhete Aéreo") %>% 
+  group_by(sgUF) %>%
+  summarise(gastos = sum(valorLíquido)) %>% 
+  arrange(-gastos) %>% 
+  slice(1:5)
+
+ggplot(gasto_passagem_aerea, aes(x=reorder(sgUF, gastos), y=gastos)) + 
+  labs(x = "Estados", y = "Gastos")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=sgUF, 
+                   xend=sgUF, 
+                   y=0, 
+                   yend=gastos)) + 
+  labs(title="Partidos que gastaram pouco", 
+       subtitle="Partidos Vs Gastos", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+```
 

@@ -264,18 +264,19 @@ ggplot(despesas_ordenadas_reais, aes(x=reorder(tipoDespesa, totalGasto), y=total
 
 
 ## Quais os gastos  dos deputados nos finais de semana
+O objetivo da consulta é identificar quais os gastos dos deputados no final de semana
 ```{r}
 
 gastos_final_semana <- dados %>%
   group_by(nomeParlamentar, tipoDespesa, dataEmissao) %>% 
   summarise(gastos = sum(valorLíquido)) %>% 
+  mutate(diaDespesa = format.Date(as.Date(dataEmissao), "%A")) %>% 
   ungroup() %>% 
-  filter(format.Date(as.Date(dataEmissao), "%a") == "sex") %>% 
+  filter(diaDespesa %in% c("sexta", "sábado", "domingo")) %>% 
   arrange(-gastos)
 
 numero_gastos_final_semana <- count(gastos_final_semana, tipoDespesa) %>% 
   arrange(-n)
-
 
 ggplot(numero_gastos_final_semana, aes(x=reorder(tipoDespesa, n), y=n)) + 
   labs(x = "Tipo da Despesa", y = "Vezes que foi utilizada")+
@@ -291,6 +292,17 @@ ggplot(numero_gastos_final_semana, aes(x=reorder(tipoDespesa, n), y=n)) +
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
 ```
+
+##Deputados que mais gastaram por estado
+
+```{r}
+
+deputados_por_estado <- dados %>% 
+  
+
+
+```
+
 
 
 

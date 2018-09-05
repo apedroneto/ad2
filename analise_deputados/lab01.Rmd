@@ -14,22 +14,26 @@ library(tidyverse)
 options(scipen = 999)
 ```
 
-
+## Lendo os dados e juntando
 ```{r}
 dados <- read_csv(("data/dadosCEAP.csv"))
 dados2 <- read_csv("data/limiteMensalCEAP.csv")
 dados %>% full_join(dados2,by = c("sgUF" = "UF")) -> dados
 ```
 
+
+## Questao 1
+Nos graficos abaixo podemos observar os parlamentares que mais gastaram e os que mais economizaram
 ```{r}
 Parlamentar_gastos <- dados %>% group_by(nomeParlamentar) %>%
+  filter(valorLíquido >= 0) %>% 
   summarise(gastos = sum(valorLíquido)) %>% 
   arrange(-gastos) %>% 
   slice(1:7)
   
 Parlamentar_economia <- dados %>% group_by(nomeParlamentar) %>%
+  filter(valorLíquido >= 0) %>% 
   summarise(gastos = sum(valorLíquido)) %>% 
-  filter(gastos >= 0) %>% 
   arrange(gastos) %>% 
   slice(1:7)
 
@@ -57,12 +61,17 @@ ggplot(Parlamentar_gastos, aes(x=nomeParlamentar, y=gastos)) +
        subtitle="Gastos Vs Nomes Parlamentares", 
        caption="source: mpg") + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
+```
+
+##Questao 2
+Nos graficos abaixo podemos observar os estados que mais gastaram e os que mais economizaram
+```{r}
 
 Estados_mais_gastos <- dados %>% group_by(sgUF) %>%
   summarise(gastos = sum(valorLíquido)) %>% 
   arrange(-gastos) %>% 
   filter(gastos > 0) %>% 
-  slice(1:7) %>% 
+  slice(1:7)
 
 ggplot(Estados_mais_gastos, aes(x=sgUF, y=gastos)) + 
   labs(x = "Estados", y = "Gastos")+
@@ -98,6 +107,8 @@ ggplot(Estados_menos_gastos, aes(x=reorder(sgUF, gastos), y=gastos)) +
   
 ```
 
+## Questão 3
+Podemos observar nos graficos abaixo os partidos que mais gastaram e os que mais economizaram
 ```{r}
 partidos_mais_gastos <- dados %>%
   filter(sgUF == 'PB') %>% 
@@ -145,6 +156,7 @@ ggplot(partidos_menos_gastos, aes(x=reorder(sgPartido, gastos), y=gastos)) +
 ```
 
 ## Questão 4
+No grafico abaixo pedemos observar os deputados por estados e seus gastos
 ```{r}
 deputados_por_estados <- dados %>%
   group_by(nomeParlamentar, sgUF, limite_mensal) %>%
@@ -156,14 +168,14 @@ deputados_por_estados <- dados %>%
 
 
 ggplot(deputados_por_estados, aes(x=reorder(nomeParlamentar, gastos), y=gastos)) + 
-  labs(x = "Estados", y = "Gastos")+
+  labs(x = "Deputados", y = "Gastos")+
   geom_point(size=3) + 
   geom_segment(aes(x=nomeParlamentar, 
                    xend=nomeParlamentar, 
                    y=0, 
                    yend=gastos)) + 
-  labs(title="Partidos que gastaram pouco", 
-       subtitle="Partidos Vs Gastos", 
+  labs(title="Deputados que gastaram pouco", 
+       subtitle="Deputados Vs Gastos", 
        caption="source: dados") + 
   coord_flip()+
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
@@ -172,6 +184,7 @@ ggplot(deputados_por_estados, aes(x=reorder(nomeParlamentar, gastos), y=gastos))
 
 ```
 ## QUESTAO 5
+No grafico abaixo podemos visualizar quais os estados que mais gastam com viagens aereas
 ```{r}
 
 gasto_passagem_aerea <- dados %>% 
@@ -188,11 +201,96 @@ ggplot(gasto_passagem_aerea, aes(x=reorder(sgUF, gastos), y=gastos)) +
                    xend=sgUF, 
                    y=0, 
                    yend=gastos)) + 
-  labs(title="Partidos que gastaram pouco", 
-       subtitle="Partidos Vs Gastos", 
+  labs(title="Estados que mais gastam com passagens aéreas", 
+       subtitle="Estados Vs Gastos", 
        caption="source: dados") + 
   coord_flip()+
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
 ```
+## Questao 6
+Entre os partidos do PSDB, DEM e SD
+Podemos observar no grafico que a dispesa mais utilizadas nao é a mais custosa
+```{r}
+
+partios <- dados %>%
+  group_by(sgPartido, nomeParlamentar, tipoDespesa) %>% 
+  filter(sgPartido == "PSDB" || sgPartido == "DEM" || sgPartido == "SD")
+
+
+numero_de_vezes_dipesas <- count(partios)
+
+despesas_ordenadas <- numero_de_vezes_dipesas %>% 
+  group_by(tipoDespesa) %>% 
+  summarise(vezesUtilizado = sum(n)) %>% 
+  arrange(-vezesUtilizado)
+
+despesas_ordenadas_reais <- partios %>% 
+  group_by(tipoDespesa) %>% 
+  summarise(totalGasto = sum(valorLíquido)) %>%
+  arrange(-totalGasto)
+  
+
+ggplot(despesas_ordenadas, aes(x=reorder(tipoDespesa, vezesUtilizado), y=vezesUtilizado)) + 
+  labs(x = "Tipo da Despesa", y = "Vezes que foi utilizada")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=tipoDespesa, 
+                   xend=tipoDespesa, 
+                   y=0, 
+                   yend=vezesUtilizado)) + 
+  labs(title="Despesas mais utilizadas pelos deputados dos partidos(PSDB, DEM, SD)", 
+       subtitle="Tipo da Despesa Vs Vezes Utilizada", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+ggplot(despesas_ordenadas_reais, aes(x=reorder(tipoDespesa, totalGasto), y=totalGasto)) + 
+  labs(x = "Tipo da Despesa", y = "Total Gasto")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=tipoDespesa, 
+                   xend=tipoDespesa, 
+                   y=0, 
+                   yend=totalGasto)) + 
+  labs(title="Despesas que mais custosas utilizadas pelos deputados dos partidos(PSDB, DEM, SD)", 
+       subtitle="Tipo da Despesa Vs Total Gasto", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+
+
+
+```
+
+
+## Quais os gastos  dos deputados nos finais de semana
+```{r}
+
+gastos_final_semana <- dados %>%
+  group_by(nomeParlamentar, tipoDespesa, dataEmissao) %>% 
+  summarise(gastos = sum(valorLíquido)) %>% 
+  ungroup() %>% 
+  filter(format.Date(as.Date(dataEmissao), "%a") == "sex") %>% 
+  arrange(-gastos)
+
+numero_gastos_final_semana <- count(gastos_final_semana, tipoDespesa) %>% 
+  arrange(-n)
+
+
+ggplot(numero_gastos_final_semana, aes(x=reorder(tipoDespesa, n), y=n)) + 
+  labs(x = "Tipo da Despesa", y = "Vezes que foi utilizada")+
+  geom_point(size=3) + 
+  geom_segment(aes(x=tipoDespesa, 
+                   xend=tipoDespesa, 
+                   y=0, 
+                   yend=n)) + 
+  labs(title="Despesas mais utilizadas pelos deputados dos partidos(PSDB, DEM, SD)", 
+       subtitle="Tipo da Despesa Vs Vezes Utilizada", 
+       caption="source: dados") + 
+  coord_flip()+
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+```
+
+
 
